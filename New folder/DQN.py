@@ -32,7 +32,7 @@ class DQN:
         self.sess = tf.compat.v1.Session()
         init = tf.compat.v1.global_variables_initializer()
         self.sess.run(init)
-        allStep=0
+        self.allStep=0
         self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
@@ -59,7 +59,7 @@ class DQN:
             allReward = 0
             done = False
             while (not done) and allReward >= 0:
-                if allStep % 10000 == 0:
+                if self.allStep % 10000 == 0:
                     self.target_agent.copyFrom(weights=self.agent.weights,
                                                session=self.sess,
                                                biases=self.agent.biases)
@@ -77,25 +77,26 @@ class DQN:
 
 
                 # learning
-                loss = self.learn()
+                #loss = self.learn()
 
 
 
                 state = next_state
                 self.change_eps()
                 num_steps += 1
-                allStep+=1
-                if num_steps%100==0:
-                    print(loss,action)
+                self.allStep+=1
+                #if num_steps%100==0:
+                    #print(loss,action)
 
             print(num_steps, allReward)
             epiode_rewards[q] = allReward
-            last_avg = epiode_rewards[max(0, q - 100):q + 1].mean()
+            last_avg = epiode_rewards[max(0, q - 10):q + 1].mean()
             last_ten_rewards.append(last_avg)
 
 
             if (q % 20 == 10):
                 self.agent.save(self.sess)
+                save_eps_steps(self)
             if(q%10 ==0):
                 import matplotlib.pyplot as plt
                 plt.plot(last_ten_rewards)
@@ -162,3 +163,11 @@ def actionCov(action):
         return [0,1,0]
     else:
         return [0,1,0.4]
+
+def save_eps_steps(dqn):
+    re = {'eps':dqn.eps,'step':dqn.allStep}
+    file = open("eps_steps.txt", "w")
+    for k, v in re.items():
+        line = k.encode("utf-8") + "\t" + str(v) + "\n"
+        file.write(line)
+    file.close()
