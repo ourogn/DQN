@@ -39,7 +39,7 @@ class DQN:
         epiode_rewards = np.zeros(500)
         last_ten_rewards = []
         for i in range(self.min_exp):
-            action = np.random.randint(0,self.agent.k-1)
+            action = random.randint(0,self.agent.k-1)
 
             next_state, reward, done, _ = env.step(actionCov(action))
             next_state = processImg(next_state)
