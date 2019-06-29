@@ -96,7 +96,7 @@ class DQN:
 
             if (q % 20 == 10):
                 self.agent.save(self.sess)
-                save_eps_steps(self)
+                #save_eps_steps(self)
             if(q%10 ==0):
                 import matplotlib.pyplot as plt
                 plt.plot(last_ten_rewards)
