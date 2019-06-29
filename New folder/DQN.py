@@ -33,13 +33,13 @@ class DQN:
         init = tf.compat.v1.global_variables_initializer()
         self.sess.run(init)
         self.allStep=0
-        self.agent.load(self.sess)
+        # self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
         epiode_rewards = np.zeros(500)
         last_ten_rewards = []
         for i in range(self.min_exp):
-            action = np.random.randint(0,4)
+            action = np.random.randint(0,self.agent.k-1)
 
             next_state, reward, done, _ = env.step(actionCov(action))
             next_state = processImg(next_state)
@@ -77,7 +77,7 @@ class DQN:
 
 
                 # learning
-                #loss = self.learn()
+                loss = self.learn()
 
 
 
@@ -85,8 +85,8 @@ class DQN:
                 self.change_eps()
                 num_steps += 1
                 self.allStep+=1
-                #if num_steps%100==0:
-                    #print(loss,action)
+                if num_steps%100==0:
+                    print(loss,action)
 
             print(num_steps, allReward)
             epiode_rewards[q] = allReward
@@ -115,7 +115,7 @@ class DQN:
 
     def getAction(self,state):
         if random.random()<self.eps:
-            return random.randint(0 ,self.agent.k)
+            return random.randint(0 ,self.agent.k-1)
         actions=self.sess.run(self.agent.predict,feed_dict={self.agent.input:state})
         return np.argmax(actions)
     def learn(self):
