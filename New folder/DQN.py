@@ -33,7 +33,7 @@ class DQN:
         init = tf.compat.v1.global_variables_initializer()
         self.sess.run(init)
         self.allStep=0
-        # self.agent.load(self.sess)
+        self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
         epiode_rewards = np.zeros(500)
