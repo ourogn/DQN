@@ -9,34 +9,35 @@ class agent:
         self.createNet()
 
     def createNet(self):
-        self.input = tf.compat.v1.placeholder(tf.float32, shape=(None, 96, 96, 3), name='input')
+        self.input = tf.compat.v1.placeholder(tf.float32, shape=(None, 96, 96, 4), name='input')
         self.tq_value = tf.compat.v1.placeholder(tf.float32, shape=(None,), name='tq_value')
         self.action = tf.compat.v1.placeholder(tf.uint8, name='action')
         self.q_value = tf.compat.v1.placeholder(tf.float32, shape=(None,), name='q_value')
         with tf.compat.v1.variable_scope('weight'):
             self.weights=[
-                tf.Variable(tf.random.truncated_normal(shape=[5, 5, 3, 64], mean=0, stddev=0.1)),
-                tf.Variable(tf.random.truncated_normal(shape=[5, 5, 64, 64], mean=0, stddev=0.1)),
-                tf.Variable(tf.random.truncated_normal(shape=[2, 2, 64, 32], mean=0, stddev=0.1)),
+                tf.Variable(tf.random.truncated_normal(shape=[16, 16, 4, 16], mean=0, stddev=0.1)),
+                tf.Variable(tf.random.truncated_normal(shape=[8, 8, 16, 32], mean=0, stddev=0.1)),
+                tf.Variable(tf.random.truncated_normal(shape=[3, 3, 32, 32], mean=0, stddev=0.1)),
                 tf.Variable(tf.random.truncated_normal(shape=(1152, 256), mean=0, stddev=0.1)),
                 tf.Variable(tf.random.truncated_normal(shape=(256, self.k), mean=0, stddev=0.1))
 
             ]
         with tf.compat.v1.variable_scope('biases'):
             self.biases =[
-                tf.Variable(tf.zeros(64)),
-                tf.Variable(tf.zeros(64)),
+                tf.Variable(tf.zeros(16)),
+                tf.Variable(tf.zeros(32)),
                 tf.Variable(tf.zeros(32)),
                 tf.Variable(tf.zeros(256)),
                 tf.Variable(tf.zeros(self.k))
 
             ]
+        #卷积层1
         conv1 = tf.nn.relu(tf.nn.conv2d(self.input/255.0,
                              self.weights[0],
                              strides=[1, 2, 2, 1],
                              padding='SAME')
                            + self.biases[0])
-
+        #卷积层2
         conv2 = tf.nn.relu(tf.nn.conv2d(conv1,
                                         self.weights[1],
                                         strides=[1, 2, 2, 1],
@@ -52,16 +53,12 @@ class agent:
                                        pool_size=[2,2],
                                        strides=2)
         # pool输出15大小
-
         flat = tf.layers.flatten(pool)
-
         fc1 = tf.nn.relu(tf.matmul(flat, self.weights[3]) + self.biases[3])
-
-        fc2 = tf.nn.relu(tf.matmul(fc1, self.weights[4]) + self.biases[4])
-        drop = tf.layers.dropout(fc2)
+        fc2 = tf.matmul(fc1, self.weights[4]) + self.biases[4]
 
         # 预测值
-        self.predict = tf.nn.softmax(drop)
+        self.predict = fc2
         # q值计算
         action_onehot = tf.one_hot(self.action, self.k)
         self.q_value = tf.reduce_sum(tf.multiply(self.predict, action_onehot), reduction_indices=[1])

@@ -33,7 +33,8 @@ class DQN:
         init = tf.compat.v1.global_variables_initializer()
         self.sess.run(init)
         self.allStep=0
-        self.agent.load(self.sess)
+        # 读取数据
+        # self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
         epiode_rewards = np.zeros(500)
@@ -53,12 +54,13 @@ class DQN:
         for q in range(500):
 
             state = env.reset()
+            image_rgb = state
             state = processImg(state)
             num_steps = 0
 
             allReward = 0
             done = False
-            while (not done) and allReward >= 0:
+            while (not done) and allReward >= 0 and np.mean(image_rgb[:,:,1]) < 184:
                 if self.allStep % 10000 == 0:
                     self.target_agent.copyFrom(weights=self.agent.weights,
                                                session=self.sess,
@@ -67,6 +69,7 @@ class DQN:
                 action = self.getAction(state)
 
                 next_state, reward, done, _ = env.step(actionCov(action))
+                image_rgb = next_state
                 if isShow:
                     env.render()
                 next_state = processImg(next_state)
@@ -138,31 +141,29 @@ class DQN:
 
 
 def processImg(img):
-    x = np.empty([1, 96, 96, 3])
+    '''x = np.empty([1, 96, 96, 3])
     x[0, :, :, :] = img
-    return x
+    return x'''
     s = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     ret, binary = cv.threshold(s, 127, 255, cv.THRESH_BINARY)
     contours, hierarchy = cv.findContours(binary, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
     cv.drawContours(s, contours, -1, (0, 0, 255), 3)
-    x =np.empty([1, 96, 96, 1])
-    x[0,:,:,0] =s
-    return x
+    x =np.empty([96, 96, 4])
+    for i in range(4):
+        x[:,:,i] = s
+    return x[np.newaxis,:,:,:]
 
 
 def actionCov(action):
     if action == 0:
-        return [-1, 1, 0]
+        return [0.0, 0.0, 0.0]
     elif action == 1:
-        return [1, 1, 0.4]
+        return [-0.6, 0.05, 0.0]
     elif action == 2:
-        return [-1, 1, 0.4]
+        return [0.6, 0.05, 0.0]
     elif action == 3:
-        return [1, 1,0]
-    elif action ==4 :
-        return [0,1,0]
-    else:
-        return [0,1,0.4]
+        return [0.0, 0.3,0.0]
+
 
 def save_eps_steps(dqn):
     re = {'eps':dqn.eps,'step':dqn.allStep}
