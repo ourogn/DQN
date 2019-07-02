@@ -12,7 +12,7 @@ class DQN:
                  min_eps,
                  exp_size,
                  batch_size,
-                 min_exp):
+                 min_exp,isDDQN):
         self.agent =agent
         self.target_agent = target_agent
         self.max_eps = max_eps
@@ -22,6 +22,7 @@ class DQN:
         self.batch_size = batch_size
         self.exp_buff = []
         self.min_exp = min_exp
+        self.isDDQN = isDDQN
 
     def change_eps(self):
         self.eps =max(self.eps-(self.max_eps-self.min_eps)/500000,
@@ -125,8 +126,14 @@ class DQN:
         # 算target_Q
         samples = random.sample(self.exp_buff,self.batch_size)
         states,actions,rewards,next_states,dones = map(np.array,zip(*samples))
-        t_qs = self.sess.run(self.target_agent.predict,feed_dict={self.target_agent.input:next_states})
-        t_q = np.amax(t_qs,axis=1)
+        if self.isDDQN:
+            mainAct = self.sess.run(self.agent.predict,feed_dict={self.agent.input:next_states})
+            mainAct = np.argmax(mainAct,axis=1)
+            t_q = self.sess.run(self.target_agent.q_value,feed_dict={self.target_agent.input:next_states,
+                                                                     self.target_agent.action:mainAct})
+        else:
+            t_qs = self.sess.run(self.target_agent.predict,feed_dict={self.target_agent.input:next_states})
+            t_q = np.amax(t_qs,axis=1)
         targets = rewards+np.invert(dones).astype(np.float32)*0.9*t_q
         # 更新神经网络
         loss,_ = self.sess.run(
