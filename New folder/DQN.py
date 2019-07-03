@@ -58,7 +58,7 @@ class DQN:
             image_rgb = state
             state = processImg(state)
             num_steps = 0
-
+            act_step =0
             allReward = 0
             done = False
             while (not done) and allReward >= 0 and np.mean(image_rgb[:,:,1]) < 184:
@@ -66,8 +66,8 @@ class DQN:
                     self.target_agent.copyFrom(weights=self.agent.weights,
                                                session=self.sess,
                                                biases=self.agent.biases)
-
-                action = self.getAction(state)
+                if act_step%8==0:
+                    action = self.getAction(state)
 
                 next_state, reward, done, _ = env.step(actionCov(action))
                 image_rgb = next_state
