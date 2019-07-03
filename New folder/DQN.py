@@ -25,7 +25,7 @@ class DQN:
         self.isDDQN = isDDQN
 
     def change_eps(self):
-        self.eps =max(self.eps-(self.max_eps-self.min_eps)/500000,
+        self.eps =max(self.eps-(self.max_eps-self.min_eps)/200000,
                       self.min_eps)
     def train(self,name,isShow):
         env = gym.envs.make(name)
@@ -52,7 +52,7 @@ class DQN:
                 state =processImg(state)
             else:
                 state = next_state
-        for q in range(500):
+        for q in range(2000):
 
             state = env.reset()
             image_rgb = state
@@ -62,35 +62,34 @@ class DQN:
             allReward = 0
             done = False
             while (not done) and allReward >= 0 and np.mean(image_rgb[:,:,1]) < 184:
-                if self.allStep % 10000 == 0:
+                if self.allStep % 1600 == 0:
                     self.target_agent.copyFrom(weights=self.agent.weights,
                                                session=self.sess,
                                                biases=self.agent.biases)
                 if act_step%8==0:
                     action = self.getAction(state)
-
+                if self.eps==self.min_eps:
+                    self.eps==self.max_eps
+                    self.agent.learningR=self.agent.learningR*10
                 next_state, reward, done, _ = env.step(actionCov(action))
                 image_rgb = next_state
                 if isShow:
                     env.render()
                 next_state = processImg(next_state)
                 allReward += reward
+                reward=reward/10
                 if len(self.exp_buff)==self.exp_size:
                     self.exp_buff.pop(0)
-                self.exp_buff.append((state[0], action, reward, next_state[0],done))
-
-
-                # learning
-                loss = self.learn()
-
-
-
+                if act_step%8==0:
+                    self.exp_buff.append((state[0], action, reward, next_state[0],done))
+                    loss = self.learn()
+                    print(loss, action)
+                act_step+=1
                 state = next_state
                 self.change_eps()
                 num_steps += 1
                 self.allStep+=1
-                if num_steps%100==0:
-                    print(loss,action)
+
 
             print(num_steps, allReward)
             epiode_rewards[q] = allReward

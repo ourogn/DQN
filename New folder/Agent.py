@@ -6,7 +6,9 @@ import random
 class agent:
     def __init__(self,K):
         self.k =K
+        self.learningR = 0.001
         self.createNet()
+
 
     def createNet(self):
         self.input = tf.compat.v1.placeholder(tf.float32, shape=(None, 96, 96, 4), name='input')
@@ -66,7 +68,7 @@ class agent:
         # loss计算
         self.loss = tf.reduce_mean(tf.square(self.tq_value-self.q_value))
         # train
-        self.train = tf.compat.v1.train.RMSPropOptimizer(0.00025,0.99,0.0,1e-6).minimize(self.loss)
+        self.train = tf.compat.v1.train.RMSPropOptimizer(self.learningR,0.99,0.0,1e-6).minimize(self.loss)
 
     def save(self,session,save_path='abc'):
         saver = tf.compat.v1.train.Saver()
