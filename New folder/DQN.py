@@ -38,6 +38,10 @@ class DQN:
         # self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
+        x = np.zeros((96, 96, 4))
+        for i in range(4):
+            x[:, :, i] = state
+        n_x = x
         epiode_rewards = np.zeros(500)
         last_ten_rewards = []
         for i in range(self.min_exp):
@@ -45,18 +49,28 @@ class DQN:
 
             next_state, reward, done, _ = env.step(actionCov(action))
             next_state = processImg(next_state)
+            for i in range(3):
+                n_x[:, :, i] = n_x[:,:,i+1]
+            n_x[:,:,3] = next_state
 
-            self.exp_buff.append((state[0], action, reward, next_state[0],done))
+            self.exp_buff.append((x, action, reward, n_x,done))
             if done:
                 state = env.reset()
                 state =processImg(state)
+                for i in range(4):
+                    x[:, :, i] = state
+                n_x = x
             else:
-                state = next_state
+                x = n_x
         for q in range(2000):
 
             state = env.reset()
             image_rgb = state
             state = processImg(state)
+            x = np.zeros((96,96,4))
+            for i in range(4):
+                x[:,:,i] = state
+            n_x = x
             num_steps = 0
             act_step =0
             allReward = 0
@@ -67,7 +81,7 @@ class DQN:
                                                session=self.sess,
                                                biases=self.agent.biases)
                 if act_step%8==0:
-                    action = self.getAction(state)
+                    action = self.getAction(x[np.newaxis,:,:,:])
                 if self.eps==self.min_eps:
                     self.eps==self.max_eps
                     self.agent.learningR=self.agent.learningR*10
@@ -76,16 +90,19 @@ class DQN:
                 if isShow:
                     env.render()
                 next_state = processImg(next_state)
+                for i in range(3):
+                    n_x[:, :, i] = n_x[:, :, i + 1]
+                n_x[:, :, 3] = next_state
                 allReward += reward
                 reward=reward/10
                 if len(self.exp_buff)==self.exp_size:
                     self.exp_buff.pop(0)
                 if act_step%8==0:
-                    self.exp_buff.append((state[0], action, reward, next_state[0],done))
+                    self.exp_buff.append((x, action, reward, n_x,done))
                     loss = self.learn()
                     print(loss, action)
                 act_step+=1
-                state = next_state
+                x=n_x
                 self.change_eps()
                 num_steps += 1
                 self.allStep+=1
@@ -151,13 +168,7 @@ def processImg(img):
     x[0, :, :, :] = img
     return x'''
     s = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    ret, binary = cv.threshold(s, 127, 255, cv.THRESH_BINARY)
-    contours, hierarchy = cv.findContours(binary, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-    cv.drawContours(s, contours, -1, (0, 0, 255), 3)
-    x =np.empty([96, 96, 4])
-    for i in range(4):
-        x[:,:,i] = s
-    return x[np.newaxis,:,:,:]
+    return s
 
 
 def actionCov(action):
