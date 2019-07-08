@@ -24,9 +24,8 @@ class DQN:
         self.min_exp = min_exp
         self.isDDQN = isDDQN
 
-
     def change_eps(self):
-        self.eps =max(self.eps-(self.max_eps-self.min_eps)/1000000,
+        self.eps =max(self.eps-(self.max_eps-self.min_eps)/200000,
                       self.min_eps)
     def train(self,name,isShow):
         env = gym.envs.make(name)
@@ -39,6 +38,10 @@ class DQN:
         # self.agent.load(self.sess)
         state = env.reset()
         state = processImg(state)
+        x = np.zeros((96, 96, 4))
+        for i in range(4):
+            x[:, :, i] = state
+        n_x = x
         epiode_rewards = np.zeros(500)
         last_ten_rewards = []
         for i in range(self.min_exp):
@@ -46,52 +49,64 @@ class DQN:
 
             next_state, reward, done, _ = env.step(actionCov(action))
             next_state = processImg(next_state)
+            for i in range(3):
+                n_x[:, :, i] = n_x[:,:,i+1]
+            n_x[:,:,3] = next_state
 
-            self.exp_buff.append((state[0], action, reward, next_state[0],done))
+            self.exp_buff.append((x, action, reward, n_x,done))
             if done:
                 state = env.reset()
                 state =processImg(state)
+                for i in range(4):
+                    x[:, :, i] = state
+                n_x = x
             else:
-                state = next_state
-        for q in range(500):
+                x = n_x;
+        for q in range(2000):
 
             state = env.reset()
-
+            image_rgb = state
             state = processImg(state)
+            x = np.zeros((96,96,4))
+            for i in range(4):
+                x[:,:,i] = state
+            n_x = x
             num_steps = 0
-
+            act_step =0
             allReward = 0
             done = False
-            while (not done):
+            while (not done) and allReward >= 0:
                 if self.allStep % 10000 == 0:
                     self.target_agent.copyFrom(weights=self.agent.weights,
                                                session=self.sess,
                                                biases=self.agent.biases)
-
-                action = self.getAction(state)
-
+                if act_step%8==0:
+                    action = self.getAction(x[np.newaxis,:,:,:])
+                if self.eps==self.min_eps:
+                    self.eps==self.max_eps
+                    self.agent.learningR=self.agent.learningR*10
                 next_state, reward, done, _ = env.step(actionCov(action))
-
+                image_rgb = next_state
                 if isShow:
                     env.render()
                 next_state = processImg(next_state)
+                for i in range(3):
+                    n_x[:, :, i] = n_x[:, :, i + 1]
+                n_x[:, :, 3] = next_state
                 allReward += reward
+                reward=reward/10
                 if len(self.exp_buff)==self.exp_size:
                     self.exp_buff.pop(0)
-                self.exp_buff.append((state[0], action, reward, next_state[0],done))
-
-
-                # learning
-                loss = self.learn()
-
-
-
-                state = next_state
+                if act_step%8==0:
+                    self.exp_buff.append((x, action, reward, n_x,done))
+                    loss = self.learn()
+                    print(loss, action)
+                act_step+=1
+                x=n_x
                 self.change_eps()
                 num_steps += 1
                 self.allStep+=1
-                if num_steps%100==0:
-                    print(loss,action)
+
 
             print(num_steps, allReward)
             epiode_rewards[q] = allReward
@@ -152,13 +167,8 @@ def processImg(img):
     '''x = np.empty([1, 96, 96, 3])
     x[0, :, :, :] = img
     return x'''
-    im2 = cv.resize(img, (80, 80), )
-    s = cv.cvtColor(im2, cv.COLOR_BGR2GRAY)
-
-    x =np.empty([80, 80, 4])
-    for i in range(4):
-        x[:,:,i] = s
-    return x[np.newaxis,:,:,:]
+    s = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    return s
 
 
 def actionCov(action):

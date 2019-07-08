@@ -68,7 +68,7 @@ class agent:
         # loss计算
         self.loss = tf.reduce_mean(tf.square(self.tq_value-self.q_value))
         # train
-        self.train = tf.compat.v1.train.RMSPropOptimizer(self.learningR,0.99,0.0,1e-6).minimize(self.loss)
+        self.train = tf.compat.v1.train.RMSPropOptimizer(self.learningR,0.99,0.01,1e-4).minimize(self.loss)
 
     def save(self,session,save_path='abc'):
         saver = tf.compat.v1.train.Saver()

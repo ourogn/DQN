@@ -61,7 +61,7 @@ class DQN:
                     x[:, :, i] = state
                 n_x = x
             else:
-                x = n_x
+                x = n_x;
         for q in range(2000):
 
             state = env.reset()
